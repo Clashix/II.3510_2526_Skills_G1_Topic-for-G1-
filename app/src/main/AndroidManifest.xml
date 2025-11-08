@@ -24,6 +24,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".NotificationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.kotlinnotification.ACTION_YES" />
+                <action android:name="com.example.kotlinnotification.ACTION_NO" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
