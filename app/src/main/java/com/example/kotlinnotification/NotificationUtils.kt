@@ -12,21 +12,30 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.TaskStackBuilder
 
+/**
+ * Constants used for notifications throughout the app
+ */
 object NotifIds {
+    // Notification channel ID (required for Android 8.0+)
     const val CHANNEL_ID = "demo_notifications_channel"
+    
+    // Unique IDs for different notification types
     const val SIMPLE_ID = 1001
     const val INTERACTIVE_ID = 1002
 
+    // Action strings for notification buttons (must be unique)
     const val ACTION_YES = "com.example.kotlinnotification.ACTION_YES"
     const val ACTION_NO = "com.example.kotlinnotification.ACTION_NO"
 }
 
+// Create notification channel (required for Android 8.0+)
+// Channels let users control notification settings per category
 fun ensureNotificationChannel(context: Context) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val chan = NotificationChannel(
             NotifIds.CHANNEL_ID,
             "Demo Notifications",
-            NotificationManager.IMPORTANCE_HIGH // HIGH pour affichage heads-up
+            NotificationManager.IMPORTANCE_HIGH // High importance = heads-up display
         ).apply {
             description = "Channel for demo notifications"
             enableLights(true)
@@ -38,45 +47,49 @@ fun ensureNotificationChannel(context: Context) {
     }
 }
 
+// Check if app can post notifications
 fun canPostNotifications(context: Context): Boolean {
-    // Si tu as déjà la gestion de permission ailleurs, on s'aligne dessus :
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
     val pm = NotificationManagerCompat.from(context)
     return pm.areNotificationsEnabled()
 }
 
+// Create and show a simple notification
 @SuppressLint("MissingPermission")
 fun simpleNotification(context: Context) {
     if (!canPostNotifications(context)) return
     ensureNotificationChannel(context)
 
-    // Intent qui ouvre l'app (MainActivity)
+    // Intent to open app when notification is tapped
     val contentIntent = Intent(context, MainActivity::class.java)
     val contentPendingIntent: PendingIntent = TaskStackBuilder.create(context).run {
         addNextIntentWithParentStack(contentIntent)
         getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }!!
 
+    // Build the notification
     val builder = NotificationCompat.Builder(context, NotifIds.CHANNEL_ID)
         .setSmallIcon(android.R.drawable.ic_dialog_info)
         .setContentTitle("Notification simple")
         .setContentText("Ceci est une notification classique.")
-        .setPriority(NotificationCompat.PRIORITY_HIGH) // HIGH pour heads-up
-        .setDefaults(NotificationCompat.DEFAULT_ALL) // Son + vibration
-        .setAutoCancel(true)
-        .setContentIntent(contentPendingIntent)
+        .setPriority(NotificationCompat.PRIORITY_HIGH) // High priority = heads-up display
+        .setDefaults(NotificationCompat.DEFAULT_ALL) // Sound + vibration
+        .setAutoCancel(true) // Auto-dismiss when tapped
+        .setContentIntent(contentPendingIntent) // Open app when tapped
 
+    // Show the notification
     with(NotificationManagerCompat.from(context)) {
         notify(NotifIds.SIMPLE_ID, builder.build())
     }
 }
 
+// Create and show an interactive notification with action buttons
 @SuppressLint("MissingPermission")
 fun interactiveNotification(context: Context) {
     if (!canPostNotifications(context)) return
     ensureNotificationChannel(context)
 
-    // Action OUI (Broadcast)
+    // Create intent for "YES" button - sends broadcast to NotificationActionReceiver
     val yesIntent = Intent(context, NotificationActionReceiver::class.java).apply {
         action = NotifIds.ACTION_YES
         putExtra("notif_id", NotifIds.INTERACTIVE_ID)
@@ -86,7 +99,7 @@ fun interactiveNotification(context: Context) {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
-    // Action NON (Broadcast)
+    // Create intent for "NO" button - sends broadcast to NotificationActionReceiver
     val noIntent = Intent(context, NotificationActionReceiver::class.java).apply {
         action = NotifIds.ACTION_NO
         putExtra("notif_id", NotifIds.INTERACTIVE_ID)
@@ -96,24 +109,26 @@ fun interactiveNotification(context: Context) {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
-    // Tap sur la notif → ouvre l'app
+    // Intent to open app when notification body is tapped
     val contentIntent = Intent(context, MainActivity::class.java)
     val contentPendingIntent: PendingIntent = TaskStackBuilder.create(context).run {
         addNextIntentWithParentStack(contentIntent)
         getPendingIntent(3, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }!!
 
+    // Build the notification with action buttons
     val builder = NotificationCompat.Builder(context, NotifIds.CHANNEL_ID)
         .setSmallIcon(android.R.drawable.ic_dialog_email)
         .setContentTitle("Notification interactive")
         .setContentText("Choisis une action : OUI ou NON.")
-        .setPriority(NotificationCompat.PRIORITY_HIGH) // HIGH pour heads-up
-        .setDefaults(NotificationCompat.DEFAULT_ALL) // Son + vibration
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setDefaults(NotificationCompat.DEFAULT_ALL)
         .setAutoCancel(true)
         .setContentIntent(contentPendingIntent)
-        .addAction(0, "OUI", yesPending)
-        .addAction(0, "NON", noPending)
+        .addAction(0, "OUI", yesPending) // Add "YES" button
+        .addAction(0, "NON", noPending)  // Add "NO" button
 
+    // Show the notification
     with(NotificationManagerCompat.from(context)) {
         notify(NotifIds.INTERACTIVE_ID, builder.build())
     }

@@ -25,11 +25,16 @@ import com.example.kotlinnotification.ui.theme.KotlinNotificationTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * MainActivity - Main entry point of the application
+ * Handles permission requests and UI setup
+ */
 class MainActivity : ComponentActivity() {
     
+    // Track if notification permission is granted
     private var hasNotificationPermission by mutableStateOf(false)
     
-    // Gestionnaire de résultat pour la demande de permission
+    // Handles the result when user accepts/denies permission
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -39,7 +44,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Vérifier la permission au démarrage
+        // Check permission when app starts
         checkNotificationPermission()
         
         enableEdgeToEdge()
@@ -50,12 +55,14 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         hasPermission = hasNotificationPermission,
                         onRequestPermission = { requestNotificationPermission() },
+                        // Send simple notification after delay
                         onSimpleNotification = { delaySeconds ->
                             lifecycleScope.launch {
                                 delay(delaySeconds * 1000L)
                                 simpleNotification(this@MainActivity)
                             }
                         },
+                        // Send interactive notification after delay
                         onInteractiveNotification = { delaySeconds ->
                             lifecycleScope.launch {
                                 delay(delaySeconds * 1000L)
@@ -68,9 +75,8 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    /**
-     * Vérifie si la permission de notification est accordée
-     */
+    // Check if notification permission is granted
+    // Android 13+ requires runtime permission, older versions don't
     private fun checkNotificationPermission() {
         hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
@@ -78,14 +84,12 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         } else {
-            // Pour les versions Android < 13, la permission n'est pas nécessaire
+            // Permission automatic on Android < 13
             true
         }
     }
     
-    /**
-     * Demande la permission de notification
-     */
+    // Request notification permission from user
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -93,6 +97,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Main UI screen that displays permission status and notification controls
+ */
 @Composable
 fun PermissionScreen(
     modifier: Modifier = Modifier,
@@ -101,8 +108,10 @@ fun PermissionScreen(
     onSimpleNotification: (Int) -> Unit = {},
     onInteractiveNotification: (Int) -> Unit = {}
 ) {
+    // Store delay values as strings (for TextField input)
     var simpleDelay by remember { mutableStateOf("3") }
     var interactiveDelay by remember { mutableStateOf("3") }
+    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -110,7 +119,7 @@ fun PermissionScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Titre
+        // Title
         Text(
             text = "Permissions Notifications",
             style = MaterialTheme.typography.headlineMedium,
@@ -119,7 +128,7 @@ fun PermissionScreen(
             modifier = Modifier.padding(bottom = 32.dp)
         )
         
-        // Carte d'état de la permission
+        // Permission status card (green if granted, red if denied)
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -133,7 +142,6 @@ fun PermissionScreen(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Icône et statut
                 Text(
                     text = if (hasPermission) "[OK]" else "[!]",
                     style = MaterialTheme.typography.displayLarge,
@@ -162,6 +170,7 @@ fun PermissionScreen(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 
+                // Show request button only if permission not granted
                 if (!hasPermission) {
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
@@ -174,11 +183,10 @@ fun PermissionScreen(
             }
         }
         
-        // Afficher les boutons de notification si la permission est accordée
+        // Show notification controls only if permission is granted
         if (hasPermission) {
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Section des notifications
             Text(
                 text = "Notifications Demo",
                 style = MaterialTheme.typography.titleMedium,
@@ -186,7 +194,7 @@ fun PermissionScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             
-            // Notification Simple
+            // Simple notification: delay input and send button
             OutlinedTextField(
                 value = simpleDelay,
                 onValueChange = { if (it.all { char -> char.isDigit() } && it.length <= 3) simpleDelay = it },
@@ -210,7 +218,7 @@ fun PermissionScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Notification Interactive
+            // Interactive notification: delay input and send button
             OutlinedTextField(
                 value = interactiveDelay,
                 onValueChange = { if (it.all { char -> char.isDigit() } && it.length <= 3) interactiveDelay = it },
@@ -238,7 +246,7 @@ fun PermissionScreen(
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Informations
+        // Information card
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -246,7 +254,7 @@ fun PermissionScreen(
             )
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(8.dp)
             ) {
                 Text(
                     text = "A propos des permissions",
@@ -260,13 +268,15 @@ fun PermissionScreen(
                             "• L'utilisateur peut accepter ou refuser la demande\n" +
                             "• Les permissions peuvent être modifiées dans les paramètres",
                     style = MaterialTheme.typography.bodySmall,
-                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.5f
+                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.5f,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
     }
 }
 
+// Preview functions for Android Studio design preview
 @Preview(showBackground = true, name = "Sans Permission")
 @Composable
 fun PermissionScreenPreview() {
